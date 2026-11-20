@@ -331,6 +331,23 @@
     .task.done .acts{flex:0 0 auto}
   }
   .mdate{display:none}
+
+  /* ===== 電腦「單日」檢視（與手機同樣一次顯示一天） ===== */
+  body.dayview #wstrip{display:flex;gap:6px;margin:6px 2px 8px}
+  body.dayview #wstrip button{flex:1;display:flex;flex-direction:row;align-items:center;justify-content:center;gap:8px;padding:6px 0;border:0;background:#fffdf8;color:var(--ink);font-size:14px;cursor:pointer;
+    box-shadow:0 -2px 0 0 var(--line),0 2px 0 0 var(--line),-2px 0 0 0 var(--line),2px 0 0 0 var(--line)}
+  body.dayview #wstrip b{font-size:20px;font-weight:700}
+  body.dayview #wstrip i{font-style:normal;font-size:12px;min-width:16px;text-align:center;color:#fff;background:#d9692b;padding:0 4px}
+  body.dayview #wstrip i:empty{background:none}
+  body.dayview #wstrip button.td{box-shadow:0 -2px 0 0 #e0a21b,0 2px 0 0 #e0a21b,-2px 0 0 0 #e0a21b,2px 0 0 0 #e0a21b;background:#fff3c4}
+  body.dayview #wstrip button.on{background:#ffe08a;box-shadow:0 -2px 0 0 var(--bd),0 2px 0 0 var(--bd),-2px 0 0 0 var(--bd),2px 0 0 0 var(--bd)}
+  body.dayview main#week{display:block !important;overflow-y:auto}
+  body.dayview .day{display:none !important}
+  body.dayview .day.sel{display:flex !important;min-height:60% }
+  body.dayview .day.past.sel .dlabel{flex:0 0 150px;flex-direction:column;background:transparent}
+  body.dayview .day.past.sel .dbody{min-height:200px;justify-content:flex-start}
+  body.dayview .day.past.sel .task{font-size:15px;padding:4px 6px}
+  @media (max-width:700px){#vtog{display:none}}
 </style>
 </head>
 <body>
@@ -341,6 +358,7 @@
     <div class="bar">
       <button id="prev" title="上一週">◀</button>
       <button id="cur" title="回到本週">本週</button>
+      <button id="vtog" title="切換：一整週／單日">單日</button>
       <button id="next" title="下一週">▶</button>
       <button id="more" title="更多功能" aria-label="更多功能"><span class="ico" data-i="more"></span></button>
     </div>
@@ -817,7 +835,7 @@ function render(){
     if(ds<today){ // 過去的日子：壓縮成一列，只留日期與（若有的話）未完成／摺疊
       return `<section class="day past ${ds===selDay?"sel":""}" data-date="${ds}">
       <div class="dlabel"><span class="cd">${d.getMonth()+1}/${d.getDate()}</span><span class="wd">${WD[i]}</span></div>
-      <div class="dbody"><ul>${evs}${rows}</ul></div>
+      <div class="dbody"><ul>${evs}${rows}</ul>${ds===selDay?`<input class="add" data-date="${ds}" placeholder="＋ 新增任務，按 Enter" maxlength="200">`:""}</div>
     </section>`}
     return `<section class="day ${ds===today?"today":""} ${ds===selDay?"sel":""}" data-date="${ds}">
       <div class="dlabel">${ds===today?'<span class="badge">今天</span>':""}<span class="mdate">${d.getMonth()+1}/${d.getDate()}</span><div class="bigdate"><span class="m">${d.getMonth()+1}</span>${SLASH}<span class="d">${d.getDate()}</span></div><div class="wdrow"><span class="wd">${WD[i]}</span></div></div>
@@ -1650,6 +1668,15 @@ window.addEventListener("pagehide",()=>{flush()});
   w.addEventListener("touchstart",e=>{if(!isMobile()||e.touches.length!==1)return;sx=e.touches[0].clientX;sy=e.touches[0].clientY;st=Date.now()},{passive:true});
   w.addEventListener("touchend",e=>{if(!isMobile()||!st)return;const t=e.changedTouches[0],dx=t.clientX-sx,dy=t.clientY-sy;
     if(Date.now()-st<700&&Math.abs(dx)>70&&Math.abs(dx)>Math.abs(dy)*2)step(dx<0?1:-1);st=0},{passive:true});
+  // 電腦：一整週／單日切換
+  const body=document.body;
+  const setView=d=>{body.classList.toggle("dayview",d);$("vtog").textContent=d?"整週":"單日";try{localStorage.setItem("bujo_view",d?"day":"week")}catch(e){}render()};
+  $("vtog").onclick=()=>setView(!body.classList.contains("dayview"));
+  const dv=()=>body.classList.contains("dayview");
+  $("prev").onclick=()=>{if(dv())step(-1);else{weekOffset--;nav()}};
+  $("next").onclick=()=>{if(dv())step(1);else{weekOffset++;nav()}};
+  let v="";try{v=localStorage.getItem("bujo_view")}catch(e){}
+  if(v==="day"){body.classList.add("dayview");$("vtog").textContent="整週"}
   // 回到本週時選今天
   $("cur").addEventListener("click",()=>{selDay=ymd(new Date());render()});
 })();
